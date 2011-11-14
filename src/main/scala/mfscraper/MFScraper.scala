@@ -1,6 +1,5 @@
 import java.io.File
 import javax.imageio.ImageIO
-import java.awt.image._
 
 import scala.actors.Futures._
 
@@ -11,6 +10,7 @@ package mfscraper {
 	object MFScraper {
 		
 		val BASE_URL = :/("www.mangafox.com") / "manga"
+		var imgList:List[scala.actors.Future[Boolean]] = List()
 	
 		def scrapeInRange(start:Int, end:Int, comic:String) = {
 			val chapterScraper = scrapeAtChapter(comic) _
@@ -21,6 +21,8 @@ package mfscraper {
 			val range = (start to end).toList
 			// Do each chapter in parallel
 			range map { x => future { chapterScraper(x) } } foreach { _() }
+			
+			imgList foreach { _() }
 		}
 	
 		def scrapeAtChapter(comic:String)(chapter:Int) = {
@@ -47,11 +49,11 @@ package mfscraper {
 			
 			val imgFile = "./" + comic + "/" + chapter + "/" + currPage + ".jpg"
 			
-			future {
+			imgList = future { 
 				Http(url(imgLink) >> { in =>
 					ImageIO.write(ImageIO.read(in), "jpg", new File(imgFile))
 				})
-			}
+			} +: imgList
 
 			val nextPage = Http(pageURL </> { nodes =>
 				((nodes \\ "div" \\ "div" \\ "form" \\ "div" \\ "a").filter { link =>
