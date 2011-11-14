@@ -3,7 +3,6 @@ import javax.imageio.ImageIO
 import java.awt.image._
 
 import scala.actors.Futures._
-import scala.xml.NodeSeq
 
 import dispatch._
 
@@ -41,26 +40,24 @@ package mfscraper {
 			BASE_URL / comic / "c%03d".format(chapter) / "%d.html".format(currPage)
 			
 			val imgLink = Http(pageURL </> { nodes =>
-				(nodes \\ "div" \\ "a" \\ "img" \\ "@src") filter { link =>
+				(nodes \\ "div" \\ "a" \\ "img" \\ "@src").filter { link =>
 					link.text.endsWith(".jpg")
-				}
-			}).head.text
-		
-			val imgFile = new File("./" + comic + "/" + chapter + "/" + currPage 
-				+ ".jpg")
-			
-			val img = Http(url(imgLink) >> { in =>
-				ImageIO.read(in)
+				}.head.text
 			})
-		
-			ImageIO.write(img, "jpg", imgFile) // move into img handler?
-		
-			// Try joining handlers?
-			val nextPage = (Http(pageURL </> { nodes =>
-				(nodes \\ "div" \\ "div" \\ "form" \\ "div" \\ "a") filter { link =>
+			
+			val imgFile = "./" + comic + "/" + chapter + "/" + currPage + ".jpg"
+			
+			future {
+				Http(url(imgLink) >> { in =>
+					ImageIO.write(ImageIO.read(in), "jpg", new File(imgFile))
+				})
+			}
+
+			val nextPage = Http(pageURL </> { nodes =>
+				((nodes \\ "div" \\ "div" \\ "form" \\ "div" \\ "a").filter { link =>
 					(link \\ "@class").text.endsWith("next_page")
-				}
-			}) \\ "@href").head.text.endsWith(".html")
+				} \\ "@href").head.text.endsWith(".html")
+			})
 		
 			if(nextPage) Some(currPage + 1)
 			else {
