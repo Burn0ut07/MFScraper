@@ -20,7 +20,7 @@ object Main extends App {
 				println("unknown error occured!")
 		}
 		
-		if(start != 0 && end != 0) {
+		if(start != 0 && end != 0 && end >= start) {
 			try {
 				MFScraper.scrapeInRange(start, end, args(2))
 			} catch {

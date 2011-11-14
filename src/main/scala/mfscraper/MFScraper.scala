@@ -12,7 +12,6 @@ package mfscraper {
 	object MFScraper {
 		
 		val BASE_URL = :/("www.mangafox.com") / "manga"
-		val NO_NEXT = 0
 	
 		def scrapeInRange(start:Int, end:Int, comic:String) = {
 			val chapterScraper = scrapeAtChapter(comic) _
@@ -31,13 +30,13 @@ package mfscraper {
 			val chapterDir = new File("./" + comic + "/" + chapter)
 			chapterDir.mkdirs()
 		
-			var i = 1; //First page is always 1
-			while(i != NO_NEXT) {
-				i = pagesScraper(i)
+			var page:Option[Int] = Some(1); //First page is always 1
+			while(page.getOrElse(None) != None) {
+				page = pagesScraper(page.get)
 			}
 		}
 	
-		def getPageAndNext(comic:String)(chapter:Int)(currPage:Int):Int = { 
+		def getPageAndNext(comic:String)(chapter:Int)(currPage:Int) = { 
 			val pageURL = 
 			BASE_URL / comic / "c%03d".format(chapter) / "%d.html".format(currPage)
 			
@@ -54,7 +53,7 @@ package mfscraper {
 				ImageIO.read(in)
 			})
 		
-			ImageIO.write(img, "jpg", imgFile)
+			ImageIO.write(img, "jpg", imgFile) // move into img handler?
 		
 			// Try joining handlers?
 			val nextPage = (Http(pageURL </> { nodes =>
@@ -63,10 +62,10 @@ package mfscraper {
 				}
 			}) \\ "@href").head.text.endsWith(".html")
 		
-			if(nextPage) currPage + 1
+			if(nextPage) Some(currPage + 1)
 			else {
 				println(currPage + " No more pages!")
-				0
+				None
 			}
 		}
 	}
