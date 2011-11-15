@@ -20,8 +20,8 @@ package mfscraper {
 		
 			val range = (start to end).toList
 			// Do each chapter in parallel
-			range map { x => future { chapterScraper(x) } } foreach { _() }
-			
+			range.par map { x => chapterScraper(x) }
+			// Block until all images are saved
 			imgList foreach { _() }
 		}
 	
