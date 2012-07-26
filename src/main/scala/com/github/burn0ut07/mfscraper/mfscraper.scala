@@ -14,7 +14,9 @@ object MFScraper {
   }
 }
 
-class MFScraper(val comic:String) {
+class MFScraper(comic:String) {
+  val comicBase = base / comic
+
   def scrapeInRange(start:Int, end:Int) : Promise[Either[String, Comic]] = {
     Promise(Left("Error retriving comic"))
   }
@@ -23,7 +25,8 @@ class MFScraper(val comic:String) {
     Promise(Left("Error retriving chapter"))
   }
 
-  def scrapePage(page:Int) : Promise[Either[String, Page]] = {
+  def scrapeChpaterPage(chapter:Int, page:Int) : Promise[Either[String, Page]] = {
+    val pageUrl = comicBase / "c%03d".format(chapter) / "%d.html".format(page)
     Promise(Left("Error retriving page"))
   }
 }
@@ -38,4 +41,4 @@ case class Page(val content:xml.Elem, val nextPage:Option[Int]) {
 }
 
 case class Chapter(val chapter:Int, val pages:Seq[Page])
-case class Comic(val chapters:Iterable[Chapter])
+case class Comic(val comic:String, val chapters:Iterable[Chapter])
