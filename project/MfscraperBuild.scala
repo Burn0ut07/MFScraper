@@ -16,7 +16,8 @@ object MfscraperBuild extends Build {
       scalaVersion := "2.9.2",
       libraryDependencies ++= Seq(
         "net.databinder.dispatch" %% "core" % "0.9.0",
-        "org.clapper" %% "argot" % "0.4"
+        "org.clapper" %% "argot" % "0.4",
+        "org.jsoup" % "jsoup" % "1.6.1"
       ),
       test in assembly := {},
       jarName in assembly := "mfscraper.jar",
