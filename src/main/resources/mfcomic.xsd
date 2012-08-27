@@ -1,0 +1,49 @@
+<?xml version="1.0"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
+    <xs:complexType name="volume">
+        <xs:attribute name="vol" use="required">
+            <xs:simpleType>
+                <xs:restriction base="xsd:integer">
+                    <xs:minInclusive value="0"/>
+                </xs:restriction>
+            </xs:simpleType>
+        </xs:attribute>
+        <xs:attribute name="start" default="1">
+            <xs:simpleType>
+                <xs:restriction base="xsd:integer">
+                    <xs:minInclusive value="1"/>
+                </xs:restriction>
+            </xs:simpleType>
+        </xs:attribute>
+        <xs:attribute name="end" type="xsd:integer" use="required" />
+    </xs:complexType>
+
+    <xs:complexType name="comic">
+        <xs:attribute name="name" type="xsd:string" use="required" />
+        <xs:attribute name="path" type="xsd:anyURI" />
+
+        <xs:sequence>
+            <xs:element name="volumes">
+                <xs:complexType>
+                    <xs:sequence>
+                        <xs:element name="volume" type="volume" maxOccurs="unbounded" />
+                    </xs:sequnce>
+                </xs:complexType>
+            </xs:element>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="comic-downloads">
+        <xs:sequence>
+            <xs:element name="comics">
+                <xs:complexType>
+                    <xs:sequence>
+                        <xs:element name="comic" type="comic" maxOccurs="unbounded" />
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:element name="comicDownloads" type="comic-downloads" />
+</xs:schema>
