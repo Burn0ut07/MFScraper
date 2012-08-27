@@ -6,17 +6,16 @@ import java.io.File
 
 import javax.imageio.ImageIO
 
-import org.jsoup.Jsoup
-
-import scala.collection.JavaConversions._
-
 object MFScraper {
-  def base = :/("mangafox.me") / "manga"
+  def base = :/("mangafox.me") / "rss"
   val dispatch = new Http
 
   def shutdown() {
     dispatch.shutdown()
   }
+
+  val ERR_MSG = "Could not retrieve page: %s"
+  val PAGE_ERROR = "page %s in %s in %s %d does not exist"
 }
 
 case class MFScraper(comic:String) {
@@ -26,7 +25,7 @@ case class MFScraper(comic:String) {
     val msg = "Could not retrieve info: %s"
     for (exc <- res.left)
       yield exc match {
-        case StatusCode(302) => msg.format("comic does not exist")
+        case StatusCode(302) => MFScraper.ERR_MSG.format("comic does not exist")
         case _ => msg.format(exc.getMessage)
       }
   }
@@ -62,72 +61,20 @@ case class MFScraper(comic:String) {
       case Right(r) => "c%05.1f".format(r)
     }
     
-    val pageUrl = comicBase / "v%02d".format(volume) / chap / "%d.html".format(page)
-    Promise(Left("Error retriving page " + page))
-  }
-}
-
-trait MFQuery {
-  protected[this] val content : org.jsoup.nodes.Document
-  protected[this] val queryBase = "html body#body %s"
-
-  protected[this] def query(q:String): org.jsoup.select.Elements = 
-    content.select(queryBase.format(q))
-}
-
-case class Page(
-    content:org.jsoup.nodes.Document, 
-    val page:Int) 
-  extends MFQuery {
-  
-  private[this] val imageUrlQuery = "div#viewer a img#image[src$=.jpg]"
-  private[this] val nextPageQuery = 
-    "div.widepage.page div#top_center_bar form#top_bar div.r.m a.btn.next_page[href$=.html]"
-
-  val imageUrl = query(imageUrlQuery).first.attr("src")
-  val next:Option[String] = {
-    val nextImgLink = Option(query(nextPageQuery).first)
-    nextImgLink map { _ attr "href" }
-  }
-}
-
-case class Chapter(
-    val chapter:AnyVal, 
-    val pages:Iterable[Page], 
-    val errors:Iterable[String])
-
-case class Volume(
-    val volume:Int, 
-    val chapters:Iterable[Chapter], 
-    val errors:Iterable[String])
-
-case class Comic(
-    val comic:String, 
-    val volumes:Iterable[Volume], 
-    val errors:Iterable[String])
-
-case class ComicInfo(content:org.jsoup.nodes.Document) extends MFQuery {
-  private[this] val base = "div#page.widepage div.left div#chapters %s"
-  private[this] val volumesQuery = base.format("div.slide h3.volume")
-  private[this] val chapterBase = "ul.chlist li div %s a.tips"
-  private[this] val chaptersQuery = 
-    "%s, %s".format(chapterBase.format("h3"), chapterBase.format("h4"))
-
-  // Map of volume number to iterable of chapter urls
-  val volumes : Map[Int, Iterable[String]] = {
-    val chapElems:Seq[org.jsoup.nodes.Element] = query(chaptersQuery)
-    chapElems map { _ attr "href" } groupBy { link =>
-      (new java.net.URL(link)).pathComponents(2) substring 1 toInt
+    val vol = volume match {
+      case -1 => ""
+      case v => "v%02d".format(volume)
     }
-  }
+    
+    val pageUrl = comicBase / vol / chap / "%d.html".format(page)
+    
+    val chpPage = Http(pageUrl OK as.mfscraper.Page(page)).either
 
-  val vols : Map[Int, Iterable[Either[Int, Float]]] = 
-    volumes map { case (v,cs) => 
-      val chaps = cs map { chap =>
-        val c = (new java.net.URL(chap)).pathComponents(3) substring 1 toFloat
-
-        convertIfValid(c)
+    for (cPage <- chpPage.left)
+      yield cPage match {
+        case StatusCode(302) => 
+          MFScraper.ERR_MSG.format(MFScraper.PAGE_ERROR.format(page, chap, vol))
+        case _ => MFScraper.ERR_MSG.format(cPage.getMessage)
       }
-      (v, chaps)
-    }
+  }
 }

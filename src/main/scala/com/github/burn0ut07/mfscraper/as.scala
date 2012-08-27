@@ -16,3 +16,12 @@ object ComicInfo extends (Response => mfscraper.ComicInfo) {
   def apply(r: Response) = 
     (dispatch.as.String andThen Jsoup.parse andThen mfscraper.ComicInfo)(r)
 }
+
+object Page extends {
+  def apply(page: Int)(r: Response) = {
+    def makePage(content: nodes.Document): mfscraper.Page = 
+      mfscraper.Page(content, page)
+
+    (dispatch.as.String andThen Jsoup.parse andThen makePage)(r)
+  } 
+}
